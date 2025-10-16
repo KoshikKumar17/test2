@@ -31,7 +31,7 @@ async def keep_traffic():
     """Keep traffic on host every 10 minutes."""
     while True:
         async with aiohttp.ClientSession() as session:
-            async with session.get(f'https://music-bot-anand-27.onrender.com/') as response:
+            async with session.get(f'https://bot1-eqpc.onrender.com/') as response:
                 if response.status == 200:
                     print("Host traffic alive!")
                 else:
