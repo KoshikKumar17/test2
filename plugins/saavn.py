@@ -70,7 +70,7 @@ async def jiosaavndl(client, message):
             # Rename the downloaded file to .mp3
             #os.rename(afile, mp3_file)
 
-            ---- useless
+            #useless
             # Download the Cover Art
             #async with aiohttp.ClientSession() as session:
                 #async with session.get(img_url) as response:
@@ -79,7 +79,7 @@ async def jiosaavndl(client, message):
                             #await f.write(await response.read())
                     #else:
                         #cover_image_path = None
-            --- useless
+            #useless
             
             img_response = requests.get(img_url)
             cover_art = img_response.content if img_response.status_code == 200 else None
