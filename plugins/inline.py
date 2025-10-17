@@ -55,7 +55,7 @@ def inline_query_handler(client, inline_query):
         url = result.get("url", "#")
         artist = html.unescape(result.get("primaryArtists", "Unknown Artist"))
         album = html.unescape(result.get("album", {}).get("name", "Unknown Album"))
-        img_url = result.get("image", [{}])[2].get("link", "")
+        img_url = result.get("image", [{}])[1].get("link", "")
 
         # Add inline keyboard with a "Search Again" button
         keyboard = InlineKeyboardMarkup(
