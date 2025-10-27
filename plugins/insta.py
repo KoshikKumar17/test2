@@ -32,7 +32,7 @@ async def insta_downloader(client, message):
             except Exception:
                 mime = ""
 
-            caption = f"""{link}\n\n@RKrishnaRoBot"""
+            caption = f"""{link}\n\n@RKrishnaaRoBot"""
 
             if "video" in mime:
                 await message.reply_chat_action(enums.ChatAction.UPLOAD_VIDEO)
