@@ -8,7 +8,6 @@ from config import Config
 
 insta_regex = r"(?i)\b(?:https?:\/\/)?(?:www\.)?instagram\.com\b"
 
-
 async def download_file(session, url, folder):
     async with session.get(url, headers={"User-Agent": "Mozilla/5.0"}) as response:
         if response.status != 200:
