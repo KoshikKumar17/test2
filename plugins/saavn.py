@@ -1,4 +1,5 @@
 import os
+import re
 import html
 import uuid
 import shutil
@@ -11,6 +12,10 @@ from pyrogram import Client, filters, enums
 from config import Config
 
 saavn_regex = r"(?i)(https?:\/\/)?(www\.)?jiosaavn\.com\/[\w\-/?=%.]*"
+
+def safe_fname(name: str) -> str:
+    name = html.unescape(name)
+    return re.sub(r'[\\/:*?"<>|]', '_', name).strip()
 
 @Client.on_message(filters.text & filters.regex(saavn_regex))
 async def jiosaavndl(client, message):
@@ -41,11 +46,11 @@ async def jiosaavndl(client, message):
         try:
             # Extracting Song Metadata
             res = req['data'][0]
-            title = html.unescape(res['name'])
-            artist = html.unescape(res['primaryArtists'])
+            title = safe_fname(res['name'])
+            artist = safe_fname(res['primaryArtists'])
             song_url = res['downloadUrl'][3]['link']
             duration = res['duration']
-            album = html.unescape(res['album']['name'])
+            album = safe_fname(res['album']['name'])
             year = res['year']
             copyright_info = res['copyright']
             img_url = res['image'][2]['link']  # URL for cover art
