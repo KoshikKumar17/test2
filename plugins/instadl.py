@@ -75,9 +75,9 @@ async def insta_downloader(client, message):
 
         # ✅ Send media
         if ext == "mp4":
-            await message.reply_video(filepath, caption=caption)
+            await message.reply_video(filepath, caption=caption, quote=True)
         else:
-            await message.reply_photo(filepath, caption=caption)
+            await message.reply_photo(filepath, caption=caption, quote=True)
 
         await k.delete()
 
