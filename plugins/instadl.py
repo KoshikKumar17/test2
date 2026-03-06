@@ -43,7 +43,7 @@ async def insta_downloader(client, message):
     caption = f"{link}\n\n@RKrishnaaRoBot"
 
     try:
-        api_url = f"https://universaldownloaderapi.vercel.app/api/meta/download?url={link}"
+        api_url = f"https://universaldlapi.vercel.app/api/meta/download?url={link}"
 
         async with aiohttp.ClientSession() as session:
             async with session.get(api_url, timeout=25) as resp:
