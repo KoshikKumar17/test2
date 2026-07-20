@@ -6,7 +6,7 @@ import tempfile
 import shutil
 import zipfile
 
-from pyrogram import Client, filters
+from pyrogram import Client, filters, raw
 from pyrogram.types import Message
 from PIL import Image
 
@@ -27,6 +27,40 @@ def random_suffix(length: int = 6) -> str:
     return "".join(random.choices(string.ascii_lowercase + string.digits, k=length))
 
 
+async def get_sticker_set(client: Client, short_name: str):
+    """Vanilla Pyrogram has no high-level get_stickers_set() — call the raw API directly."""
+    return await client.invoke(
+        raw.functions.messages.GetStickerSet(
+            stickerset=raw.types.InputStickerSetShortName(short_name=short_name),
+            hash=0,
+        )
+    )
+
+
+async def download_raw_document(client: Client, document, dest_path: str):
+    """Download a raw Document (e.g. a sticker) by pulling it chunk by chunk via upload.GetFile."""
+    location = raw.types.InputDocumentFileLocation(
+        id=document.id,
+        access_hash=document.access_hash,
+        file_reference=document.file_reference,
+        thumb_size="",
+    )
+    limit = 1024 * 1024  # 1 MB per chunk
+    offset = 0
+    with open(dest_path, "wb") as f:
+        while True:
+            result = await client.invoke(
+                raw.functions.upload.GetFile(location=location, offset=offset, limit=limit)
+            )
+            chunk = result.bytes
+            if not chunk:
+                break
+            f.write(chunk)
+            offset += len(chunk)
+            if len(chunk) < limit:
+                break
+
+
 @Client.on_message(filters.text)
 async def handle_message(client: Client, message: Message):
     pack_name = extract_pack_name(message.text)
@@ -37,20 +71,21 @@ async def handle_message(client: Client, message: Message):
     status_msg = await message.reply_text(f"Looking up pack '{pack_name}'...")
 
     try:
-        sticker_set = await client.get_stickers_set(pack_name)
-    except Exception:
+        result = await get_sticker_set(client, pack_name)
+    except Exception as e:
         await status_msg.edit_text(
-            "Couldn't find that sticker pack. Double-check the link and try again."
+            f"Couldn't find that sticker pack. Double-check the link and try again.\n"
+            f"(debug: {e})"
         )
         return
 
-    stickers = sticker_set.stickers
-    if not stickers:
+    documents = result.documents
+    if not documents:
         await status_msg.edit_text("That pack has no stickers.")
         return
 
     await status_msg.edit_text(
-        f"Found '{sticker_set.title}' ({len(stickers)} stickers). Downloading and converting..."
+        f"Found '{result.set.title}' ({len(documents)} stickers). Downloading and converting..."
     )
 
     # Use a temp directory for both downloads and the final zip; removed in `finally`.
@@ -62,15 +97,15 @@ async def handle_message(client: Client, message: Message):
     skipped_count = 0
 
     try:
-        for idx, sticker in enumerate(stickers, start=1):
+        for idx, doc in enumerate(documents, start=1):
             # Skip animated (.tgs) and video (.webm) stickers — not single-frame images.
-            if sticker.is_animated or sticker.is_video:
+            if doc.mime_type in ("application/x-tgsticker", "video/webm"):
                 skipped_count += 1
                 continue
 
             try:
                 local_webp_path = os.path.join(downloads_dir, f"sticker_{idx}.webp")
-                await client.download_media(sticker.file_id, file_name=local_webp_path)
+                await download_raw_document(client, doc, local_webp_path)
 
                 # Convert webp -> jpg (flatten transparency onto white background).
                 with Image.open(local_webp_path) as img:
@@ -110,4 +145,3 @@ async def handle_message(client: Client, message: Message):
     finally:
         # Always clean up the temp folder, success or failure.
         shutil.rmtree(temp_dir, ignore_errors=True)
-                
