@@ -5,7 +5,7 @@ import string
 import tempfile
 import shutil
 import zipfile
-
+from config import Config
 from pyrogram import Client, filters, raw
 from pyrogram.types import Message
 from PIL import Image
@@ -68,7 +68,10 @@ async def handle_message(client: Client, message: Message):
     if not pack_name:
         return  # not a sticker pack link / short-name — ignore silently
 
-    status_msg = await message.reply_text(f"Looking up pack '{pack_name}'...")
+    if str(message.from_user.id) not in Config.AUTHJS:
+        return
+
+    status_msg = await message.reply_text(f"Looking up pack '{pack_name}'...", quote=True)
 
     try:
         result = await get_sticker_set(client, pack_name)
@@ -139,7 +142,7 @@ async def handle_message(client: Client, message: Message):
         if skipped_count:
             caption += f", {skipped_count} skipped (animated/video/failed)"
 
-        await message.reply_document(document=zip_path, caption=caption)
+        await message.reply_document(document=zip_path, caption=caption, quote=True)
         await status_msg.delete()
 
     finally:
