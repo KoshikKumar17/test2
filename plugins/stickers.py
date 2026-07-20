@@ -1,5 +1,7 @@
 import os
 import re
+import random
+import string
 import tempfile
 import shutil
 import zipfile
@@ -8,11 +10,12 @@ from pyrogram import Client, filters
 from pyrogram.types import Message
 from PIL import Image
 
-STICKER_LINK_REGEX = re.compile(r"(?:https?://)?t\.me/addstickers/([a-zA-Z0-9_]+)")
+PACK_LINK_REGEX = re.compile(r"t\.me/(?:addstickers|addemoji)/([A-Za-z0-9_]+)")
+
 
 def extract_pack_name(text: str) -> str | None:
     text = (text or "").strip()
-    match = re.search(r"t\.me/(?:addstickers|addemoji)/([A-Za-z0-9_]+)", text)
+    match = PACK_LINK_REGEX.search(text)
     if match:
         return match.group(1)
     if re.fullmatch(r"[A-Za-z0-9_]+", text):
@@ -20,22 +23,22 @@ def extract_pack_name(text: str) -> str | None:
     return None
 
 
-@Client.on_message(filters.text & filters.regex(STICKER_LINK_REGEX))
+def random_suffix(length: int = 6) -> str:
+    return "".join(random.choices(string.ascii_lowercase + string.digits, k=length))
+
+
+@Client.on_message(filters.text)
 async def handle_message(client: Client, message: Message):
     pack_name = extract_pack_name(message.text)
 
     if not pack_name:
-        await message.reply_text(
-            "That doesn't look like a sticker pack link. "
-            "Send something like https://t.me/addstickers/PackName"
-        )
-        return
+        return  # not a sticker pack link / short-name — ignore silently
 
     status_msg = await message.reply_text(f"Looking up pack '{pack_name}'...")
 
     try:
         sticker_set = await client.get_stickers_set(pack_name)
-    except Exception as e:
+    except Exception:
         await status_msg.edit_text(
             "Couldn't find that sticker pack. Double-check the link and try again."
         )
@@ -52,7 +55,7 @@ async def handle_message(client: Client, message: Message):
 
     # Use a temp directory for both downloads and the final zip; removed in `finally`.
     temp_dir = tempfile.mkdtemp(prefix="stickerpack_")
-    downloads_dir = os.path.join(temp_dir, "downloads")
+    downloads_dir = os.path.join(temp_dir, f"downloads_{random_suffix()}")
     os.makedirs(downloads_dir, exist_ok=True)
 
     converted_count = 0
@@ -79,7 +82,7 @@ async def handle_message(client: Client, message: Message):
                     flattened.save(jpg_path, "JPEG", quality=95)
 
                 converted_count += 1
-            except Exception as e:
+            except Exception:
                 skipped_count += 1
                 continue
 
@@ -107,4 +110,4 @@ async def handle_message(client: Client, message: Message):
     finally:
         # Always clean up the temp folder, success or failure.
         shutil.rmtree(temp_dir, ignore_errors=True)
-
+                
