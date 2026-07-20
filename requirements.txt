@@ -1,6 +1,7 @@
 pyrogram
 asyncio
 TgCrypto
+pillow
 requests
 mutagen
 aiofiles
